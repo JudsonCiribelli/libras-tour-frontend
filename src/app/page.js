@@ -1,101 +1,194 @@
-import Image from "next/image";
+"use client";
+import { useState, useRef, useEffect } from "react";
+import api from "./utils/api";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.js
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [categoria, setCategoria] = useState(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  const handleCategoriaClick = (novaCategoria) => {
+    setCategoria(novaCategoria);
+  };
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
+      <h1 className="text-2xl font-bold mb-6 text-gray-800">
+        Selecione uma Categoria
+      </h1>
+
+      {!categoria ? (
+        <div className="flex flex-col space-y-4 w-64">
+          <button
+            onClick={() => handleCategoriaClick("bairros")}
+            className="bg-blue-500 text-white py-3 rounded-lg shadow-md transition-all hover:bg-blue-600"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            Bairros
+          </button>
+          <button
+            onClick={() => handleCategoriaClick("girias")}
+            className="bg-blue-500 text-white py-3 rounded-lg shadow-md transition-all hover:bg-blue-600"
           >
-            Read our docs
-          </a>
+            Gírias
+          </button>
+          <button
+            onClick={() => handleCategoriaClick("turismo")}
+            className="bg-blue-500 text-white py-3 rounded-lg shadow-md transition-all hover:bg-blue-600"
+          >
+            Turismo
+          </button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      ) : (
+        <CameraComponent categoria={categoria} />
+      )}
+    </div>
+  );
+}
+
+function CameraComponent({ categoria }) {
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const [resultado, setResultado] = useState("Aguardando sinal...");
+  const [cameraError, setCameraError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [hasPermission, setHasPermission] = useState(null);
+
+  const requestCameraPermission = async () => {
+    try {
+      // First, check if permissions are supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error("Camera API não suportada neste navegador");
+      }
+
+      // Try to get user media with both front and back cameras
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: "user" },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+        audio: false,
+      });
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        setHasPermission(true);
+        setCameraError(null);
+      }
+    } catch (error) {
+      console.error("Erro ao acessar a câmera:", error);
+      setHasPermission(false);
+
+      let errorMessage = "❌ Erro ao acessar a câmera: ";
+      if (
+        error.name === "NotAllowedError" ||
+        error.name === "PermissionDeniedError"
+      ) {
+        errorMessage +=
+          "Permissão negada. Por favor, permita o acesso à câmera nas configurações do seu navegador.";
+      } else if (error.name === "NotFoundError") {
+        errorMessage += "Nenhuma câmera encontrada no dispositivo.";
+      } else if (error.name === "NotReadableError") {
+        errorMessage += "A câmera está em uso por outro aplicativo.";
+      } else {
+        errorMessage += error.message || "Erro desconhecido";
+      }
+
+      setCameraError(errorMessage);
+    }
+  };
+
+  useEffect(() => {
+    requestCameraPermission();
+
+    return () => {
+      // Cleanup: stop all tracks when component unmounts
+      if (videoRef.current && videoRef.current.srcObject) {
+        videoRef.current.srcObject.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, []);
+
+  const capturarEEnviarFrame = async () => {
+    if (!videoRef.current || !canvasRef.current || !hasPermission) return;
+
+    setLoading(true);
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    try {
+      const imageData = canvas.toDataURL("image/jpeg").split(",")[1];
+      const response = await api.post("/predict", {
+        image: imageData,
+        categoria,
+      });
+      setResultado(response.data.prediction);
+    } catch (error) {
+      console.error("Erro ao processar o sinal:", error);
+      setResultado("Erro ao identificar o sinal.");
+    }
+
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    let interval;
+    if (hasPermission) {
+      interval = setInterval(capturarEEnviarFrame, 3000);
+    }
+    return () => clearInterval(interval);
+  }, [hasPermission]);
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
+      <h2 className="text-2xl font-semibold text-gray-800">
+        Categoria Selecionada: {categoria}
+      </h2>
+      <p className="text-gray-600 mt-2">
+        Faça um sinal e aguarde o reconhecimento.
+      </p>
+
+      {cameraError ? (
+        <div className="mt-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+          <p>{cameraError}</p>
+          <button
+            onClick={requestCameraPermission}
+            className="mt-4 bg-red-500 text-white py-2 px-4 rounded-lg shadow-md hover:bg-red-600"
+          >
+            Tentar Novamente
+          </button>
+        </div>
+      ) : (
+        <div className="mt-6 border-4 border-gray-300 rounded-lg overflow-hidden">
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            className="w-[320px] h-[240px]"
+          ></video>
+        </div>
+      )}
+
+      <canvas ref={canvasRef} className="hidden"></canvas>
+
+      <div className="mt-4 p-4 bg-white rounded-lg shadow-md w-full max-w-md">
+        <h3 className="text-xl font-bold text-gray-800">Resultado:</h3>
+        <p className="text-gray-600">
+          {loading ? "Processando..." : resultado}
+        </p>
+      </div>
+
+      <button
+        onClick={() => window.location.reload()}
+        className="mt-4 bg-red-500 text-white py-2 px-4 rounded-lg shadow-md transition-all hover:bg-red-600"
+      >
+        Voltar
+      </button>
     </div>
   );
 }
