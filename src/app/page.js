@@ -123,7 +123,7 @@ function CameraComponent({ categoria }) {
 
     try {
       const imageData = canvas.toDataURL("image/jpeg").split(",")[1];
-      const response = await api.post("/predict", {
+      const response = await api.post("/predict/", {
         image: imageData,
         categoria,
       });

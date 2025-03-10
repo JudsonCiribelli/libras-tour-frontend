@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API_URL =
-  "https://0981-2804-14f8-407-1500-21f1-3a8a-68b3-ded2.ngrok-free.app/";
+  "https://0981-2804-14f8-407-1500-21f1-3a8a-68b3-ded2.ngrok-free.app/api";
 
 const api = axios.create({
   baseURL: API_URL,
@@ -12,7 +12,7 @@ const api = axios.create({
 
 export const enviarImagemParaPredicao = async (base64Image, categoria) => {
   try {
-    const response = await api.post("/predict", {
+    const response = await api.post("/predict/", {
       image: base64Image,
       categoria: categoria,
     });
